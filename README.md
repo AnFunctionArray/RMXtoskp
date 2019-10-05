@@ -3,7 +3,7 @@
 ## Prerequisites
  Basically you would need to download this [package](https://sourceforge.net/p/libsquish/code/HEAD/tarball), build it - it uses cmake to create vsproj files which you should then compile with vs and copy the library path to this project linker -> additional dependancies. Also change the include path in cppsucks.cpp. This library is used for decompression of dxt compressed textures from the Zone file.
 
-Additionally you would need to download sketchup SDK and include it in the include path plus mklink in the headers sub-directory from SketchupAPI to slapi. Or you can just replace slapi in rmxtoskp.c with SketchupAPI.
+Additionally you would need to download sketchup SDK and include it in the include path plus mklink in the headers sub-directory from SketchupAPI to slapi. Or you can just replace slapi in rmxtoskp.c with SketchupAPI. And also of-course add the libraries in linker -> additional dependancies.
 
 ## Oddities
 
