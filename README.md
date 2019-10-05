@@ -1,7 +1,7 @@
 # RMXtoskp
 
 ## Prerequisites
- Basically you would need to download this [package](https://sourceforge.net/p/libsquish/code/HEAD/tarball) and change the include path in cppsucks.cpp. This library is used for decompression of dxt compressed textures from the Zone file.
+ Basically you would need to download this [package](https://sourceforge.net/p/libsquish/code/HEAD/tarball), build it - it uses cmake to create vsproj files which you should then compile with vs and copy the library path to this project linker -> additional dependancies. Also change the include path in cppsucks.cpp. This library is used for decompression of dxt compressed textures from the Zone file.
 
 Additionally you would need to download sketchup SDK and include it in the include path plus mklink in the headers sub-directory from SketchupAPI to slapi. Or you can just replace slapi in rmxtoskp.c with SketchupAPI.
 
