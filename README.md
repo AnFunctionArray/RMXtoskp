@@ -21,6 +21,6 @@ You would get some initial errors because of an union inside a structure in some
 ###### arguments
 1. rmx file
 2. zone file
-3. input skp file ###### (optional - if specified apply patches to game files, otherwise write to new_model.skp extracted data)
+3. input skp file **(optional - if specified apply patches to game files, otherwise write to new_model.skp extracted data)**
 
 Considerting you are reading this I've probably provided you with a sample. If not you would need nakamichi680 ungmx tool to appy to unlz-ed level from the cache directory - it's in the root of the game folder. You would obviosuly need to start up the game with the level you want to extract first.
