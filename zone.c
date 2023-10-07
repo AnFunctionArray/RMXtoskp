@@ -234,9 +234,11 @@ fillDefinitions(modelentities, DefinitionsObjects, Definitions,ZoneBuffer)
         struct SUPoint3D rotation;
         DWORD* Code = ZoneBuffer->ObjsPtr->ObjInfoPtr[ObjectIndex]->ObjectCodeBin;
         struct SCOPE {
-             struct xzy{ float x, y, z; } Transformation, Rotation;
+            struct xzy { float x, y, z; };
+            SUGroupRef group;
             struct SCOPE* previous, * next;
-        } DefaultScope = { { 0 } }, * CurrentScope = &DefaultScope;
+        } DefaultScope = { { SU_INVALID } }, * CurrentScope = &DefaultScope;
+        b(SUGroupCreate, &CurrentScope->group);
         while (*Code != 0xFFFFFFFFul)
         {
             if (*(Code) == 0xFFFFFFFEul && ++Code)
@@ -244,20 +246,28 @@ fillDefinitions(modelentities, DefinitionsObjects, Definitions,ZoneBuffer)
                 CurrentScope->next = malloc(sizeof * CurrentScope),
                     CurrentScope->next->previous = CurrentScope,
                     CurrentScope = CurrentScope->next,
-                    CurrentScope->Transformation = (struct xzy) { 0 };
-                CurrentScope->Rotation = (struct xzy){ 0 };
+                    CurrentScope->group = (SUGroupRef){ SU_INVALID };
+                b(SUGroupCreate, &CurrentScope->group);
             }
             else if (*(Code) == 0xFFFFFFFDul && ++Code)
             {
-                CurrentScope = CurrentScope->previous,
-                    free(CurrentScope->next);
+                CurrentScope = CurrentScope->previous;
+                SUEntitiesAddGroup(entities, CurrentScope->next->group);
+                free(CurrentScope->next);
             }
-            else if (*(Code) == 0xFFFFFFFCul && ++Code)
-                CurrentScope->Transformation = (struct xzy){ 0[(struct xzy*)Code].x + CurrentScope->Transformation.x, 0[(struct xzy*)Code].y + CurrentScope->Transformation.y, 0[(struct xzy*)Code].z + CurrentScope->Transformation.z },
-                CurrentScope->Rotation = (struct xzy){ 1[(struct xzy*)Code].x + CurrentScope->Rotation.x, 1[(struct xzy*)Code].y + CurrentScope->Rotation.y, 1[(struct xzy*)Code].z + CurrentScope->Rotation.z },
-                ++ * (struct xzy(**)[2]) & Code;
+            else if (*(Code) == 0xFFFFFFFCul && ++Code) {
+                struct xzy Transformation = 0[(struct xzy*)Code], Rotation = 1[(struct xzy*)Code];
+                transformation = (struct SUVector3D){ Transformation.x, Transformation.y, Transformation.z };
+                rotation = (struct SUPoint3D){ Rotation.x, Rotation.y, Rotation.z };
+                outmatrix = get_transform(&matrix, &rotation, &transformation);
+                if (outmatrix)
+                    b(SUGroupSetTransform, CurrentScope->group, outmatrix);
+                ++*(struct xzy(**)[2]) & Code;
+            }
             else
             {
+                SUEntitiesRef entities = SU_INVALID;
+                b(SUGroupGetEntities, CurrentScope->group, &entities);
                 //sprintf(name, "%sObjectDefinition%d", i, ),
                 //b(SUComponentDefinitionSetName, Definitions + i, name);
                 SUComponentInstanceRef instance = { SU_INVALID };
@@ -275,14 +285,7 @@ fillDefinitions(modelentities, DefinitionsObjects, Definitions,ZoneBuffer)
                 //SUEntitiesRef entities=SU_INVALID;
                 //b(SUComponentDefinitionGetEntities,Definitions[*Code],&entities);
 
-                transformation = (struct SUVector3D){ CurrentScope->Transformation.x, CurrentScope->Transformation.y, CurrentScope->Transformation.z};
-                rotation = (struct SUPoint3D){ CurrentScope->Rotation.x, CurrentScope->Rotation.y, CurrentScope->Rotation.z };
-
-                
-                outmatrix = get_transform(&matrix, &rotation, &transformation);
-                if (outmatrix)
-                    b(SUComponentInstanceSetTransform, instance, outmatrix);
-                    //b(SUComponentInstanceSetTransform,instance,&matrixtransform),
+                //b(SUComponentInstanceSetTransform,instance,&matrixtransform),
 
                 b(SUEntitiesAddInstance, entities, instance, NULL);
                 //char buff[sizeof("instance_xxxxx.skp")];
@@ -293,6 +296,7 @@ fillDefinitions(modelentities, DefinitionsObjects, Definitions,ZoneBuffer)
                 Code += 4;
             }
         }
+        SUEntitiesAddGroup(entities, CurrentScope->group);
     }
 }
 
