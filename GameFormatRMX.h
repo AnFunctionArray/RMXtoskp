@@ -2,7 +2,7 @@ typedef unsigned long dword; //32bit word
 typedef unsigned short word; //16bit word
 struct FloatingPosition
 {
-    float x,z,y,d;
+    float x,y,z,d;
     //d Indicates the position is point or vertex - the default value is point (0x3F80=1)
 };
 struct Room
