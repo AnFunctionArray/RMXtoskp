@@ -5,18 +5,6 @@ struct FloatingPosition
     float x,y,z,d;
     //d Indicates the position is point or vertex - the default value is point (0x3F80=1)
 };
-struct Room
-{
-    char unknown70[0x70];
-    struct FloatingPosition RoomTransform,  //The room XZY transform
-//Down are positions of two points which are the room visibility limits
-    RoomLimitPoint0,  //The position of the first point
-    RoomLimitPoint1;  //The position of the second point
-    char unknown8[8];
-    dword RoomHash,  //This is the hashed room name mapped in this structure (the hash is searched by the TR 6 engine in the current loaded zone for room resources)
-    unknownC[3];
-    struct NL_OBJ roompointer *__ptr32(FirstObject), roompointer *__ptr32(LastOne);
-};
 struct NL_OBJ {
     struct NL_OBJ roompointer *__ptr32(Previous), roompointer *__ptr32(Next);
     char unknown18[0x18];
@@ -43,6 +31,27 @@ struct NL_OBJ {
         dword dwEventIdToInvoke; //When this id is received into the callback function - this Func is invoked
         dword dwFuncNum; //Number of function invoked from EVX file
     } FancyFuncInvocation[]; //as AmountFuncsInvoked
+};
+struct NODE { struct NL_OBJ roompointer* __ptr32(FirstObject), roompointer* __ptr32(LastOne); };
+struct Room
+{
+    char unknown70[0x70];
+    struct FloatingPosition RoomTransform,  //The room XZY transform
+        //Down are positions of two points which are the room visibility limits
+        RoomLimitPoint0,  //The position of the first point
+        RoomLimitPoint1;  //The position of the second point
+    char unknown8[8];
+    dword RoomHash,  //This is the hashed room name mapped in this structure (the hash is searched by the TR 6 engine in the current loaded zone for room resources)
+        unknownC[3];
+    union {
+        struct NL_OBJ roompointer* __ptr32(FirstObject), roompointer* __ptr32(LastOne);
+        struct {
+            struct NODE nodes[13];
+            struct NODE potnodes[5];
+            unsigned char fs[0x10];
+            struct NODE potnodes1[3];
+        };
+    };
 };
 struct RMX
 {

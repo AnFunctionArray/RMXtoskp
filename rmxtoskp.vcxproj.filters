@@ -41,5 +41,8 @@
     <ClCompile Include="C:\Users\sasho\Downloads\SDK_WIN_x64_2019-2-222\samples\ReadingFromAskpFile\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="room.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
