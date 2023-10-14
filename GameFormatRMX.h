@@ -1,5 +1,6 @@
 typedef unsigned long dword; //32bit word
 typedef unsigned short word; //16bit word
+typedef unsigned char byte;
 struct FloatingPosition
 {
     float x,y,z,d;
@@ -43,15 +44,43 @@ struct Room
     char unknown8[8];
     dword RoomHash,  //This is the hashed room name mapped in this structure (the hash is searched by the TR 6 engine in the current loaded zone for room resources)
         unknownC[3];
-    union {
-        struct NL_OBJ roompointer* __ptr32(FirstObject), roompointer* __ptr32(LastOne);
-        struct {
-            struct NODE nodes[13];
-            struct NODE potnodes[5];
-            unsigned char fs[0x10];
-            struct NODE potnodes1[3];
-        };
-    };
+    struct NL_OBJ roompointer* __ptr32(FirstObject), roompointer* __ptr32(LastOne);
+    struct NODE restofobjects[13];
+    //pointers to segment at the end of the room
+    struct UNKNOWN1 roompointer* __ptr32(begin);
+    dword unknown4; //can be -1 to disable
+                    //its a count - of how many structures above pointer has
+    void roompointer* __ptr32(end);
+    dword unknown4_2;
+    word unknown2;
+    byte unknown1; //overwritten to disablecolset on bind
+    byte disablecolset; //disables colset if set otherwise enables it
+    dword roomreverb;
+    dword roompointer* __ptr32(addroommask);
+    dword roompointer* __ptr32(fakesmask);
+    dword unknown10[4]; //mostly 0xFFFFFFFF
+    dword disablewhichset; //disable/enable which colset exactly
+                           //gets checked for 1
+    dword unknown8_2[2];
+    dword unknown8_3[2]; //gets overwritten
+    dword unknown14[4];
+    dword reset; //if set 0 resets node
+};
+struct UNKNOWN1 {   //total size 0x70
+    byte unknown1; // can be 3
+    byte unknown3[3];
+    dword amuonttocheck; // how many to be checked
+    dword bittotest[1]; // which bit to test in addroommask
+                    // aka 1 << (bittotest & 0x1F)
+#define AfterRoomMaskChecks(unkn1)(struct UNKNOWN2*)(unkn1->bittotest+unkn1->amuonttocheck)
+};
+
+struct UNKNOWN2 {
+    dword unkown28[10];
+    struct somepos {
+        float pos[3];
+        dword unkown;
+    } posses[4];
 };
 struct RMX
 {

@@ -2,7 +2,7 @@ typedef unsigned long dword; //32bit word
 typedef unsigned short word; //16bit word
 struct Mesh {
 	void(meshpointer* __ptr32(next));  //Structure size
-	dword unknown8[2],
+	signed int nuvscords, unknown4_0,
 		AmountVertices, // Amount  of vertices
 		unknown4,
 		AmountIndexes,   // Amount  of indexes
@@ -13,18 +13,18 @@ struct Mesh {
 		float X, Y, Z, U, V, U1, V1;
 		dword Unknown, SpecularColor, DiffuseColor;
 	} vertexData[];  //vertex data of number as  AmountVertices
-#define indexData(currentMesh)(word*)((currentMesh).vertexData+(currentMesh).AmountVertices)
-#define groupData(currentMesh)(struct Group*)(indexData(currentMesh)+(currentMesh).AmountIndexes)
+#define indexData(currentMesh)((word*)((currentMesh).vertexData+(currentMesh).AmountVertices))
+#define groupData(currentMesh)((struct Group*)(indexData(currentMesh)+(currentMesh).AmountIndexes))
 };
 struct Group {
-	unsigned long NumFaces,
+	signed long NumFaces,
 		NumVertices,
 		StartIndex,
-		MaterIndex,
-		unknown4,
-		BaseVertexIndex,
-		LastVertex,
-		PrimitiveType;
+		MaterIndex;
+	short uvxcoords[4];
+	unsigned long lastindex;
+	//short uvxindices[3];
+	unsigned long PrimitiveType;
 	float PosX1,
 		PosZ1,
 		PosY1,

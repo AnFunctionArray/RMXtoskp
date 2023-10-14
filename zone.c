@@ -90,6 +90,28 @@ struct SUPoint3D *rotation;
     }
     return outmatrix;
 }
+
+unsigned long calculate_index(groupdata, indexdata, index, amountmax)
+struct Group* groupdata; unsigned short* indexdata; signed long index;
+unsigned long amountmax;
+{
+#undef zonepointer
+#undef MeshesObjects
+#define meshpointer
+#define zonepointer
+#include "GameFormatZone.h"
+    if (index < groupdata->StartIndex) {
+        index -= groupdata->StartIndex;
+        index = abs(index);
+        index = groupdata->lastindex - (index - 1);
+    }
+    else if (index >= amountmax) {
+        index -= amountmax;
+        index = (index) + groupdata->StartIndex;
+    }
+    return indexdata[index];
+}
+
 fillDefinitions(modelentities, DefinitionsObjects, Definitions,ZoneBuffer)
     SUEntitiesRef modelentities;
     SUComponentDefinitionRef(DefinitionsObjects)[];
@@ -97,6 +119,7 @@ fillDefinitions(modelentities, DefinitionsObjects, Definitions,ZoneBuffer)
     struct Zone(*ZoneBuffer);
 {
     struct Mesh(*currentMesh);
+#define meshpointer __based(currentMesh)
 #undef zonepointer
 #undef MeshesObjects
 #define zonepointer __based(ZoneBuffer)
@@ -150,6 +173,15 @@ fillDefinitions(modelentities, DefinitionsObjects, Definitions,ZoneBuffer)
             vertices[i].z=currentMesh->vertexData[i].Z;
             //b(SUGeometryInputAddVertex,geom_input,&vertices);
         }
+        typedef enum D3DPRIMITIVETYPE {
+            D3DPT_POINTLIST = 1,
+            D3DPT_LINELIST = 2,
+            D3DPT_LINESTRIP = 3,
+            D3DPT_TRIANGLELIST = 4,
+            D3DPT_TRIANGLESTRIP = 5,
+            D3DPT_TRIANGLEFAN = 6,
+            D3DPT_FORCE_DWORD = 0x7fffffff
+        } D3DPRIMITIVETYPE, * LPD3DPRIMITIVETYPE;
         b(SUGeometryInputSetVertices,geom_input,currentMesh->AmountVertices,vertices);
         SUFaceRef *face = _alloca(sizeof(*face)*currentMesh->AmountGroups);
         for(size_t i=0;i<currentMesh->AmountGroups;++i)
@@ -158,56 +190,70 @@ fillDefinitions(modelentities, DefinitionsObjects, Definitions,ZoneBuffer)
             {
                 case D3DPT_TRIANGLESTRIP: 
                 {*/
-			unsigned long amountfaces = 0;
-                    for(unsigned long(y)=i[groupData(*currentMesh)].StartIndex;
-						amountfaces < i[groupData(*currentMesh)].NumFaces;
-                        ++y)
+            SULoopInputRef loop_input = SU_INVALID;
+            //b(SULoopInputCreate, &loop_input);
+
+            struct SUMaterialInput mat_input;
+
+            mat_input.material = i[groupData(*currentMesh)].MaterIndex[material];
+
+            mat_input.num_uv_coords = 3;
+            unsigned long amountfaces = 0;
+                    for(signed long(z)=i[groupData(*currentMesh)].StartIndex - 1;
+                        amountfaces < (i[groupData(*currentMesh)].NumFaces - 1);
+                        z += 1)
                     {
-						SULoopInputRef loop_input = SU_INVALID;
-						b(SULoopInputCreate, &loop_input);
                         /*bool Continue=false;
                         for(unsigned long(z)=i[groupData(*currentMesh)].StartIndex;z<y;++z)
                             if(y[indexData(*currentMesh)]==z[indexData(*currentMesh)])
                                 Continue=true;
                         if(!Continue)*/
+                        struct Group* currgroup = groupData(*currentMesh);
+						signed long y = z;
 
-						unsigned long z = y;
+#define getindex(x) (calculate_index(currgroup, indexData(*currentMesh), x, currentMesh->AmountIndexes))
 
-#define getindex(x) (x < currentMesh->AmountIndexes ? (x)[indexData(*currentMesh)] : (x - currentMesh->AmountIndexes) [indexData(*currentMesh)])
+						for (; getindex(z) == getindex(z + 1) || getindex(z + 1) == getindex(z + 2) || getindex(z + 2) == getindex(z); z += 1);
 
-						for (; !(getindex(z) != getindex(z + 1)
-							&& getindex(z) != getindex(z + 2) &&
-							getindex(z + 1) != getindex(z + 2)); ++z);
+                        //if (y != z)
+                          //  amountfaces += 1;
 
-						struct SUMaterialInput mat_input;
-
-						mat_input.material = i[groupData(*currentMesh)].MaterIndex[material];
-
-						mat_input.num_uv_coords = 3;
-
+                        loop_input = (SULoopInputRef){ SU_INVALID };
+                        b(SULoopInputCreate, &loop_input);
 						unsigned long currentindex;
-							for(unsigned long x = z; x < 3 + z; ++x)
+							for(signed long x = z; x < 3 + z; ++x)
 								currentindex = getindex(x),
 								assert(currentindex < currentMesh->AmountVertices),
-								printf("%d\n", currentindex),
-								(x-z)[mat_input.vertex_indices] = currentindex,
+								printf("%d\n", x),
+								(x - z)[mat_input.vertex_indices] = currentindex,
 								(x - z)[mat_input.uv_coords].x = currentindex[currentMesh->vertexData].U,
 								(x - z)[mat_input.uv_coords].y = currentindex[currentMesh->vertexData].V,
 								b(SULoopInputAddVertexIndex, loop_input, currentindex);
 
 							//SU_ERROR_UNSUPPORTED
+                                //if (x > 2) {
 
-							size_t face_index;
 
-							b(SUGeometryInputAddFace, geom_input, &loop_input, &face_index);
+                                    size_t face_index;
 
-							b(SUGeometryInputFaceSetFrontMaterial, geom_input, face_index, &mat_input);
+                                    b(SUGeometryInputAddFace, geom_input, &loop_input, &face_index);
 
-							b(SUGeometryInputFaceSetBackMaterial, geom_input, face_index, &mat_input);
+                                    b(SUGeometryInputFaceSetFrontMaterial, geom_input, face_index, &mat_input);
 
-							++amountfaces;
+                                    b(SUGeometryInputFaceSetBackMaterial, geom_input, face_index, &mat_input);
+
+                                    
+                                    //x = -1;
+                                    amountfaces += 1;
+                                    z = y;
+                                    //if (amountfaces >= i[groupData(*currentMesh)].NumFaces)
+                                    //    break;
+                                //}
+							
                         //printf("%d\n",y[indexData(*currentMesh)]);
                     }
+
+                    //++amountfaces;
 					b(SUEntitiesFill, entities, geom_input, true);
                     /*SUFaceRef(face) =SU_INVALID;
                         if(a(SUFaceCreate,&face, vertices, &loop_input)==SU_ERROR_NONE)
