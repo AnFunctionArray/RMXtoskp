@@ -162,103 +162,55 @@ fillMesh(entities, currentMesh, material)
         mat_input.num_uv_coords = 3;
         struct SUPlane3D plane = {0};
 
-        unsigned long amountfaces = 0;
+        signed long amountfaces = 0;
         for (signed long(y) = i[groupData(*currentMesh)].StartIndex;
             amountfaces < i[groupData(*currentMesh)].NumFaces;
-            y += i[groupData(*currentMesh)].PrimitiveType == D3DPT_TRIANGLESTRIP ? 1 : 3)
+            ++y)
         {
+            SULoopInputRef loop_input = SU_INVALID;
+            b(SULoopInputCreate, &loop_input);
             /*bool Continue=false;
             for(unsigned long(z)=i[groupData(*currentMesh)].StartIndex;z<y;++z)
                 if(y[indexData(*currentMesh)]==z[indexData(*currentMesh)])
                     Continue=true;
             if(!Continue)*/
+
             signed long z = y;
 
 #define getindex(x) (calculate_index(currgroup, indexData(*currentMesh), x, currentMesh->AmountIndexes))
 
-            //if (y != z)
-                //  amountfaces += 1;
+            for (; !(getindex(z) != getindex(z + 1)
+                && getindex(z) != getindex(z + 2) &&
+                getindex(z + 1) != getindex(z + 2)); ++z);
 
-            loop_input = (SULoopInputRef){ SU_INVALID };
-            b(SULoopInputCreate, &loop_input);
-            unsigned currentindex;
+            struct SUMaterialInput mat_input;
 
-                //mat_input.num_uv_coords += 1;
-            struct SUPlane3D lastplane = plane;
-            bool is_on = false;
-            bool canrect = true;
-            signed long lsts[3], lstslsts[3];
-            for (; getindex(z + 2) == getindex(z) || getindex(z + 1) == getindex(z) || getindex(z + 1) == getindex(z + 2)
-                || getindex(z + 3) == getindex(z + 2); z += 1);
-            for (signed long x = z, n = 0; x < 6 + z; ++x, ++n) {
-                if (n > 2) {
-                    b(SUPlane3DIsOn, &plane, vertices + getindex(x), &is_on);
-                    canrect = canrect && is_on;
-                    lstslsts[n - 2] = getindex(x);
-                }
-                else if (n == 2) {
-                    lsts[n] = getindex(x);
-                    b(SUPlane3DSetWithPoints, &plane, vertices + getindex(x), vertices + lsts[n - 1], vertices + lsts[n - 2]);
-                }
-                else {
-                    lsts[n] = getindex(x);
-                }
-            }
-            if (canrect) {
-                int lstar[4];
-                lstar[0] = lsts[0];
-                lstar[1] = lsts[0] == lstar[0] ? lsts[1] == lstar[0] ? lsts[2] : lsts[1] : lsts[0];
-                lstar[2] = lstslsts[0] == lstar[0] ? lstslsts[1] == lstar[1] ? lstslsts[2] : lstslsts[1] : lstslsts[0];
-                lstar[3] = lstslsts[0] == lstar[2] ? lstslsts[1] == lstar[2] ? lstslsts[2] : lstslsts[1] : lstslsts[0];
+            mat_input.material = i[groupData(*currentMesh)].MaterIndex[material];
 
+            mat_input.num_uv_coords = 3;
 
-                mat_input.num_uv_coords = 4;
-                for (signed long n = 0; n < mat_input.num_uv_coords; ++n) {
-                    currentindex = lstar[n],
-                        assert(currentindex < currentMesh->AmountVertices),
-                        printf("%d\n", currentindex),
-                        (n)[mat_input.vertex_indices] = currentindex,
-                        (n)[mat_input.uv_coords].x = currentindex[currentMesh->vertexData].U,
-                        (n)[mat_input.uv_coords].y = currentindex[currentMesh->vertexData].V,
-                        b(SULoopInputAddVertexIndex, loop_input, currentindex);
-                }
-            }
-            else {
-                for (; getindex(z + 2) == getindex(z) || getindex(z + 1) == getindex(z) || getindex(z + 1) == getindex(z + 2); z += 1);
-                mat_input.num_uv_coords = 3;
-                for (signed long x = z, n = 0; x < mat_input.num_uv_coords + z; ++x, ++n) {
-                    currentindex = getindex(x),
-                        assert(currentindex < currentMesh->AmountVertices),
-                        printf("%d\n", currentindex),
-                        (n)[mat_input.vertex_indices] = currentindex,
-                        (n)[mat_input.uv_coords].x = currentindex[currentMesh->vertexData].U,
-                        (n)[mat_input.uv_coords].y = currentindex[currentMesh->vertexData].V,
-                        b(SULoopInputAddVertexIndex, loop_input, currentindex);
-                }
-            }
-                //SU_ERROR_UNSUPPORTED
-                    //if (x > 2) {
-                size_t face_index;
+            signed long currentindex;
+            for (signed long x = z; x < 3 + z; ++x)
+                currentindex = getindex(x),
+                assert(currentindex < currentMesh->AmountVertices),
+                printf("%d\n", currentindex),
+                (x - z)[mat_input.vertex_indices] = currentindex,
+                (x - z)[mat_input.uv_coords].x = currentindex[currentMesh->vertexData].U,
+                (x - z)[mat_input.uv_coords].y = currentindex[currentMesh->vertexData].V,
+                b(SULoopInputAddVertexIndex, loop_input, currentindex);
 
-                b(SUGeometryInputAddFace, geom_input, &loop_input, &face_index);
+            //SU_ERROR_UNSUPPORTED
 
-                b(SUMaterialSetOpacity, mat_input.material, 0.2);
+            size_t face_index;
 
-                b(SUGeometryInputFaceSetFrontMaterial, geom_input, face_index, &mat_input);
+            b(SUGeometryInputAddFace, geom_input, &loop_input, &face_index);
 
-                b(SUMaterialSetOpacity, mat_input.material, 1.0);
+            b(SUGeometryInputFaceSetFrontMaterial, geom_input, face_index, &mat_input);
 
-                b(SUGeometryInputFaceSetBackMaterial, geom_input, face_index, &mat_input);
+            b(SUGeometryInputFaceSetBackMaterial, geom_input, face_index, &mat_input);
 
-
-
-            amountfaces += 1;
-            //z = y;
-            //if (amountfaces >= i[groupData(*currentMesh)].NumFaces)
-            //    break;
-        //}
-
-//printf("%d\n",y[indexData(*currentMesh)]);
+            ++amountfaces;
+            //printf("%d\n",y[indexData(*currentMesh)]);
         }
 
         //++amountfaces;
