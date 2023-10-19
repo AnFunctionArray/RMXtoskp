@@ -24,6 +24,7 @@ void DecompressImage(unsigned char* rgba, int width, int height, void const* blo
 void*MeshesObjects(a)
     struct Meshes *a;
 {
+    struct Mesh;
     struct RoomMesh(*currentRoom);
     struct Mesh(*currentMesh);
 #define meshpointer __based(currentMesh)
@@ -112,11 +113,220 @@ unsigned long amountmax;
     return indexdata[index];
 }
 
-fillDefinitions(modelentities, DefinitionsObjects, Definitions,ZoneBuffer)
+fillMesh(entities, currentMesh, material)
+    SUEntitiesRef entities;
+    struct Mesh(*currentMesh);
+    SUMaterialRef* material;
+{
+#define meshpointer __based(currentMesh)
+#undef zonepointer
+#undef MeshesObjects
+#define zonepointer 
+#include "GameFormatZone.h"
+    SUGeometryInputRef geom_input = SU_INVALID;
+    b(SUGeometryInputCreate, &geom_input);
+    struct SUPoint3D* vertices = malloc(currentMesh->AmountVertices * sizeof * vertices);
+    for (size_t i = 0; i < currentMesh->AmountVertices; ++i)
+    {
+        //struct SUPoint3D vertices;
+        vertices[i].x = currentMesh->vertexData[i].X,
+            vertices[i].y = currentMesh->vertexData[i].Y,
+            vertices[i].z = currentMesh->vertexData[i].Z;
+        //b(SUGeometryInputAddVertex,geom_input,&vertices);
+    }
+    typedef enum D3DPRIMITIVETYPE {
+        D3DPT_POINTLIST = 1,
+        D3DPT_LINELIST = 2,
+        D3DPT_LINESTRIP = 3,
+        D3DPT_TRIANGLELIST = 4,
+        D3DPT_TRIANGLESTRIP = 5,
+        D3DPT_TRIANGLEFAN = 6,
+        D3DPT_FORCE_DWORD = 0x7fffffff
+    } D3DPRIMITIVETYPE, * LPD3DPRIMITIVETYPE;
+    b(SUGeometryInputSetVertices, geom_input, currentMesh->AmountVertices, vertices);
+    SUFaceRef* face = malloc(sizeof(*face) * currentMesh->AmountGroups);
+    for (size_t i = 0; i < currentMesh->AmountGroups; ++i)
+    {
+        /*switch(i[groupData(*currentMesh)].PrimitiveType)
+        {
+            case D3DPT_TRIANGLESTRIP:
+            {*/
+        assert(i[groupData(*currentMesh)].PrimitiveType == D3DPT_TRIANGLESTRIP || i[groupData(*currentMesh)].PrimitiveType == D3DPT_TRIANGLELIST);
+        struct Group* currgroup = groupData(*currentMesh);
+        SULoopInputRef loop_input = SU_INVALID;
+        //b(SULoopInputCreate, &loop_input);
+
+        struct SUMaterialInput mat_input;
+
+        mat_input.material = i[groupData(*currentMesh)].MaterIndex[material];
+        mat_input.num_uv_coords = 3;
+        struct SUPlane3D plane = {0};
+
+        unsigned long amountfaces = 0;
+        for (signed long(y) = i[groupData(*currentMesh)].StartIndex;
+            amountfaces < i[groupData(*currentMesh)].NumFaces;
+            y += i[groupData(*currentMesh)].PrimitiveType == D3DPT_TRIANGLESTRIP ? 1 : 3)
+        {
+            /*bool Continue=false;
+            for(unsigned long(z)=i[groupData(*currentMesh)].StartIndex;z<y;++z)
+                if(y[indexData(*currentMesh)]==z[indexData(*currentMesh)])
+                    Continue=true;
+            if(!Continue)*/
+            signed long z = y;
+
+#define getindex(x) (calculate_index(currgroup, indexData(*currentMesh), x, currentMesh->AmountIndexes))
+
+            //if (y != z)
+                //  amountfaces += 1;
+
+            loop_input = (SULoopInputRef){ SU_INVALID };
+            b(SULoopInputCreate, &loop_input);
+            unsigned currentindex;
+
+                //mat_input.num_uv_coords += 1;
+            struct SUPlane3D lastplane = plane;
+            bool is_on = false;
+            bool canrect = true;
+            signed long lsts[3], lstslsts[3];
+            for (; getindex(z + 2) == getindex(z) || getindex(z + 1) == getindex(z) || getindex(z + 1) == getindex(z + 2)
+                || getindex(z + 3) == getindex(z + 2); z += 1);
+            for (signed long x = z, n = 0; x < 6 + z; ++x, ++n) {
+                if (n > 2) {
+                    b(SUPlane3DIsOn, &plane, vertices + getindex(x), &is_on);
+                    canrect = canrect && is_on;
+                    lstslsts[n - 2] = getindex(x);
+                }
+                else if (n == 2) {
+                    lsts[n] = getindex(x);
+                    b(SUPlane3DSetWithPoints, &plane, vertices + getindex(x), vertices + lsts[n - 1], vertices + lsts[n - 2]);
+                }
+                else {
+                    lsts[n] = getindex(x);
+                }
+            }
+            if (canrect) {
+                int lstar[4];
+                lstar[0] = lsts[0];
+                lstar[1] = lsts[0] == lstar[0] ? lsts[1] == lstar[0] ? lsts[2] : lsts[1] : lsts[0];
+                lstar[2] = lstslsts[0] == lstar[0] ? lstslsts[1] == lstar[1] ? lstslsts[2] : lstslsts[1] : lstslsts[0];
+                lstar[3] = lstslsts[0] == lstar[2] ? lstslsts[1] == lstar[2] ? lstslsts[2] : lstslsts[1] : lstslsts[0];
+
+
+                mat_input.num_uv_coords = 4;
+                for (signed long n = 0; n < mat_input.num_uv_coords; ++n) {
+                    currentindex = lstar[n],
+                        assert(currentindex < currentMesh->AmountVertices),
+                        printf("%d\n", currentindex),
+                        (n)[mat_input.vertex_indices] = currentindex,
+                        (n)[mat_input.uv_coords].x = currentindex[currentMesh->vertexData].U,
+                        (n)[mat_input.uv_coords].y = currentindex[currentMesh->vertexData].V,
+                        b(SULoopInputAddVertexIndex, loop_input, currentindex);
+                }
+            }
+            else {
+                for (; getindex(z + 2) == getindex(z) || getindex(z + 1) == getindex(z) || getindex(z + 1) == getindex(z + 2); z += 1);
+                mat_input.num_uv_coords = 3;
+                for (signed long x = z, n = 0; x < mat_input.num_uv_coords + z; ++x, ++n) {
+                    currentindex = getindex(x),
+                        assert(currentindex < currentMesh->AmountVertices),
+                        printf("%d\n", currentindex),
+                        (n)[mat_input.vertex_indices] = currentindex,
+                        (n)[mat_input.uv_coords].x = currentindex[currentMesh->vertexData].U,
+                        (n)[mat_input.uv_coords].y = currentindex[currentMesh->vertexData].V,
+                        b(SULoopInputAddVertexIndex, loop_input, currentindex);
+                }
+            }
+                //SU_ERROR_UNSUPPORTED
+                    //if (x > 2) {
+                size_t face_index;
+
+                b(SUGeometryInputAddFace, geom_input, &loop_input, &face_index);
+
+                b(SUMaterialSetOpacity, mat_input.material, 0.2);
+
+                b(SUGeometryInputFaceSetFrontMaterial, geom_input, face_index, &mat_input);
+
+                b(SUMaterialSetOpacity, mat_input.material, 1.0);
+
+                b(SUGeometryInputFaceSetBackMaterial, geom_input, face_index, &mat_input);
+
+
+
+            amountfaces += 1;
+            //z = y;
+            //if (amountfaces >= i[groupData(*currentMesh)].NumFaces)
+            //    break;
+        //}
+
+//printf("%d\n",y[indexData(*currentMesh)]);
+        }
+
+        //++amountfaces;
+        b(SUEntitiesFill, entities, geom_input, true);
+        /*SUFaceRef(face) =SU_INVALID;
+            if(a(SUFaceCreate,&face, vertices, &loop_input)==SU_ERROR_NONE)
+                //assert(0),
+                printf("seriosuy"),
+                b(SUEntitiesAddFaces,entities, 1, &face),
+                b(SULoopInputCreate,&loop_input
+        b(SUEntitiesFill,entities,geom_input,true);
+    /*  }
+    break;
+}*/
+    }
+    free(face);
+    free(vertices);
+    //b(SUEntitiesAddFaces,entities, currentMesh->AmountGroups, face);
+}
+
+fillMaterial(material, ZoneBuffer)
+SUMaterialRef* material;
+struct Zone(*ZoneBuffer);
+{
+#define meshpointer
+#undef zonepointer
+#undef MeshesObjects
+#define zonepointer __based(ZoneBuffer)
+#include "GameFormatZone.h"
+    size_t offsetData = 0;
+    SUTextureRef* textures = malloc(ZoneBuffer->TextPtr->AmountTextHead * sizeof(SUTextureRef));
+    for (unsigned int i = 0; i < ZoneBuffer->TextPtr->AmountTextHead; offsetData += i[textureheaders(*ZoneBuffer->TextPtr)].datasize, ++i)
+    {
+        SUImageRepRef currentimagerep = SU_INVALID;
+        b(SUImageRepCreate, &currentimagerep);
+
+        printf("width: %d, height: %d\n", i[textureheaders(*ZoneBuffer->TextPtr)].xsize, i[textureheaders(*ZoneBuffer->TextPtr)].ysize);
+
+        char* outbuffer = malloc(i[textureheaders(*ZoneBuffer->TextPtr)].xsize * i[textureheaders(*ZoneBuffer->TextPtr)].ysize * 4);
+
+        DecompressImage(outbuffer, i[textureheaders(*ZoneBuffer->TextPtr)].xsize, i[textureheaders(*ZoneBuffer->TextPtr)].ysize, texturedata(*ZoneBuffer->TextPtr) + offsetData,
+            *(unsigned long*)i[textureheaders(*ZoneBuffer->TextPtr)].format == *(unsigned long*)"DXT1" ? 1 : 2);
+        b(SUImageRepSetData, currentimagerep, i[textureheaders(*ZoneBuffer->TextPtr)].xsize, i[textureheaders(*ZoneBuffer->TextPtr)].ysize, 32, 0,
+            *(unsigned long*)i[textureheaders(*ZoneBuffer->TextPtr)].format == 0x15 ? texturedata(*ZoneBuffer->TextPtr) + offsetData : outbuffer);
+
+        //printfrawbytes(outbuffer, i[textureheaders(*ZoneBuffer->TextPtr)].xsize * i[textureheaders(*ZoneBuffer->TextPtr)].ysize * 4);
+
+        //system("PAUSE");
+
+        i[textures] = (SUTextureRef)SU_INVALID;
+
+        b(SUTextureCreateFromImageRep, textures + i, currentimagerep);
+
+        free(outbuffer);
+    }
+    printf("%d\n", ZoneBuffer->TextPtr->AmountTextInfo);
+    for (unsigned int i = 0; i < ZoneBuffer->TextPtr->AmountTextInfo; ++i)
+        i[material] = (SUMaterialRef)SU_INVALID, b(SUMaterialCreate, material + i),
+        i[ZoneBuffer->TextPtr->textureinfo].primarytexture != -1 ? b(SUMaterialSetTexture, i[material], (i[ZoneBuffer->TextPtr->textureinfo].primarytexture)[textures]) : 0;
+    free(textures);
+}
+
+fillDefinitions(modelentities, DefinitionsObjects, Definitions, ZoneBuffer, material)
     SUEntitiesRef modelentities;
     SUComponentDefinitionRef(DefinitionsObjects)[];
     SUComponentDefinitionRef(Definitions)[];
     struct Zone(*ZoneBuffer);
+    SUMaterialRef* material;
 {
     struct Mesh(*currentMesh);
 #define meshpointer __based(currentMesh)
@@ -124,37 +334,6 @@ fillDefinitions(modelentities, DefinitionsObjects, Definitions,ZoneBuffer)
 #undef MeshesObjects
 #define zonepointer __based(ZoneBuffer)
 #include "GameFormatZone.h"
-	size_t offsetData = 0;
-	SUTextureRef* textures = _alloca(ZoneBuffer->TextPtr->AmountTextHead * sizeof(SUTextureRef));
-	for (unsigned int i = 0; i < ZoneBuffer->TextPtr->AmountTextHead; offsetData += i[textureheaders(*ZoneBuffer->TextPtr)].datasize, ++i)
-	{
-		SUImageRepRef currentimagerep = SU_INVALID;
-		b(SUImageRepCreate, &currentimagerep);
-
-		printf("width: %d, height: %d\n", i[textureheaders(*ZoneBuffer->TextPtr)].xsize, i[textureheaders(*ZoneBuffer->TextPtr)].ysize);
-
-		char* outbuffer = malloc(i[textureheaders(*ZoneBuffer->TextPtr)].xsize * i[textureheaders(*ZoneBuffer->TextPtr)].ysize * 4);
-
-		DecompressImage(outbuffer, i[textureheaders(*ZoneBuffer->TextPtr)].xsize, i[textureheaders(*ZoneBuffer->TextPtr)].ysize, texturedata(*ZoneBuffer->TextPtr) + offsetData,
-			*(unsigned long*)i[textureheaders(*ZoneBuffer->TextPtr)].format == *(unsigned long*)"DXT1" ? 1 : 2);
-		b(SUImageRepSetData, currentimagerep, i[textureheaders(*ZoneBuffer->TextPtr)].xsize, i[textureheaders(*ZoneBuffer->TextPtr)].ysize, 32, 0, 
-			*(unsigned long*)i[textureheaders(*ZoneBuffer->TextPtr)].format == 0x15 ? texturedata(*ZoneBuffer->TextPtr) + offsetData : outbuffer);
-		
-		//printfrawbytes(outbuffer, i[textureheaders(*ZoneBuffer->TextPtr)].xsize * i[textureheaders(*ZoneBuffer->TextPtr)].ysize * 4);
-
-		//system("PAUSE");
-
-		i[textures] = (SUTextureRef)SU_INVALID;
-
-		b(SUTextureCreateFromImageRep, textures + i, currentimagerep);
-
-		free(outbuffer);
-	}
-	SUMaterialRef* material = _alloca(ZoneBuffer->TextPtr->AmountTextInfo * sizeof(SUMaterialRef));
-	printf("%d\n", ZoneBuffer->TextPtr->AmountTextInfo);
-	for (unsigned int i = 0; i < ZoneBuffer->TextPtr->AmountTextInfo; ++i)
-		i[material] = (SUMaterialRef)SU_INVALID, b(SUMaterialCreate, material + i), 
-		i[ZoneBuffer->TextPtr->textureinfo].primarytexture != -1 ? b(SUMaterialSetTexture, i[material], (i[ZoneBuffer->TextPtr->textureinfo].primarytexture)[textures]) : 0;
     typeMeshesObjects*object=MeshesObjects(ZoneBuffer->MshPtr);
     //SUComponentDefinitionRef(*Definitions) = _alloca(object->AmountObjects * sizeof * Definitions);
     size_t currentIndex=0;
@@ -162,111 +341,7 @@ fillDefinitions(modelentities, DefinitionsObjects, Definitions,ZoneBuffer)
     {
         SUEntitiesRef entities=SU_INVALID;
         b(SUComponentDefinitionGetEntities,currentIndex[Definitions],&entities);
-        SUGeometryInputRef geom_input=SU_INVALID;
-        b(SUGeometryInputCreate,&geom_input);
-        struct SUPoint3D *vertices=_alloca(currentMesh->AmountVertices*sizeof *vertices);
-        for(size_t i=0;i<currentMesh->AmountVertices;++i)
-        {
-            //struct SUPoint3D vertices;
-            vertices[i].x=currentMesh->vertexData[i].X,
-            vertices[i].y=currentMesh->vertexData[i].Y,
-            vertices[i].z=currentMesh->vertexData[i].Z;
-            //b(SUGeometryInputAddVertex,geom_input,&vertices);
-        }
-        typedef enum D3DPRIMITIVETYPE {
-            D3DPT_POINTLIST = 1,
-            D3DPT_LINELIST = 2,
-            D3DPT_LINESTRIP = 3,
-            D3DPT_TRIANGLELIST = 4,
-            D3DPT_TRIANGLESTRIP = 5,
-            D3DPT_TRIANGLEFAN = 6,
-            D3DPT_FORCE_DWORD = 0x7fffffff
-        } D3DPRIMITIVETYPE, * LPD3DPRIMITIVETYPE;
-        b(SUGeometryInputSetVertices,geom_input,currentMesh->AmountVertices,vertices);
-        SUFaceRef *face = _alloca(sizeof(*face)*currentMesh->AmountGroups);
-        for(size_t i=0;i<currentMesh->AmountGroups;++i)
-        { 
-            /*switch(i[groupData(*currentMesh)].PrimitiveType)
-            {
-                case D3DPT_TRIANGLESTRIP: 
-                {*/
-            SULoopInputRef loop_input = SU_INVALID;
-            //b(SULoopInputCreate, &loop_input);
-
-            struct SUMaterialInput mat_input;
-
-            mat_input.material = i[groupData(*currentMesh)].MaterIndex[material];
-
-            mat_input.num_uv_coords = 3;
-            unsigned long amountfaces = 0;
-                    for(signed long(z)=i[groupData(*currentMesh)].StartIndex - 1;
-                        amountfaces < (i[groupData(*currentMesh)].NumFaces - 1);
-                        z += 1)
-                    {
-                        /*bool Continue=false;
-                        for(unsigned long(z)=i[groupData(*currentMesh)].StartIndex;z<y;++z)
-                            if(y[indexData(*currentMesh)]==z[indexData(*currentMesh)])
-                                Continue=true;
-                        if(!Continue)*/
-                        struct Group* currgroup = groupData(*currentMesh);
-						signed long y = z;
-
-#define getindex(x) (calculate_index(currgroup, indexData(*currentMesh), x, currentMesh->AmountIndexes))
-
-						for (; getindex(z) == getindex(z + 1) || getindex(z + 1) == getindex(z + 2) || getindex(z + 2) == getindex(z); z += 1);
-
-                        //if (y != z)
-                          //  amountfaces += 1;
-
-                        loop_input = (SULoopInputRef){ SU_INVALID };
-                        b(SULoopInputCreate, &loop_input);
-						unsigned long currentindex;
-							for(signed long x = z; x < 3 + z; ++x)
-								currentindex = getindex(x),
-								assert(currentindex < currentMesh->AmountVertices),
-								printf("%d\n", x),
-								(x - z)[mat_input.vertex_indices] = currentindex,
-								(x - z)[mat_input.uv_coords].x = currentindex[currentMesh->vertexData].U,
-								(x - z)[mat_input.uv_coords].y = currentindex[currentMesh->vertexData].V,
-								b(SULoopInputAddVertexIndex, loop_input, currentindex);
-
-							//SU_ERROR_UNSUPPORTED
-                                //if (x > 2) {
-
-
-                                    size_t face_index;
-
-                                    b(SUGeometryInputAddFace, geom_input, &loop_input, &face_index);
-
-                                    b(SUGeometryInputFaceSetFrontMaterial, geom_input, face_index, &mat_input);
-
-                                    b(SUGeometryInputFaceSetBackMaterial, geom_input, face_index, &mat_input);
-
-                                    
-                                    //x = -1;
-                                    amountfaces += 1;
-                                    z = y;
-                                    //if (amountfaces >= i[groupData(*currentMesh)].NumFaces)
-                                    //    break;
-                                //}
-							
-                        //printf("%d\n",y[indexData(*currentMesh)]);
-                    }
-
-                    //++amountfaces;
-					b(SUEntitiesFill, entities, geom_input, true);
-                    /*SUFaceRef(face) =SU_INVALID;
-                        if(a(SUFaceCreate,&face, vertices, &loop_input)==SU_ERROR_NONE)
-                            //assert(0),
-                            printf("seriosuy"),
-                            b(SUEntitiesAddFaces,entities, 1, &face),
-                            b(SULoopInputCreate,&loop_input
-                    b(SUEntitiesFill,entities,geom_input,true);
-              /*  }
-                break;
-            }*/
-        }
-        //b(SUEntitiesAddFaces,entities, currentMesh->AmountGroups, face);
+        fillMesh(entities, currentMesh, material);
     }  
     for (size_t ObjectIndex = 0; ObjectIndex < ZoneBuffer->ObjsPtr->AmountObjInfoPtrs; ++ObjectIndex) {
         if (ZoneBuffer->ObjsPtr->ObjInfoPtr[ObjectIndex] == -1)
@@ -274,7 +349,7 @@ fillDefinitions(modelentities, DefinitionsObjects, Definitions,ZoneBuffer)
 
         SUEntitiesRef entities = SU_INVALID;
         b(SUComponentDefinitionGetEntities, DefinitionsObjects[ObjectIndex], &entities);
-
+        
         struct SUTransformation matrix, * outmatrix;
         struct SUVector3D transformation;
         struct SUPoint3D rotation;
@@ -363,3 +438,25 @@ drawObject(modelentities,Definitions,ZoneBuffer,Transformation,ObjectIndex, Obje
 #include "GameFormatRMX.h"
 
 }
+#pragma optimize( "", off )
+findroomindexbyhash(ZoneBuffer, hash)
+struct Zone(*ZoneBuffer);
+unsigned int hash;
+{
+    struct Mesh;
+    struct Mesh(*currentMesh);
+#define meshpointer __based(currentMesh)
+#undef zonepointer
+#undef MeshesObjects
+#define zonepointer __based(ZoneBuffer)
+#include "GameFormatZone.h"
+    currentMesh = &ZoneBuffer->MshPtr->MeshRooms.Room;
+    struct RoomMesh* currroomz = &ZoneBuffer->MshPtr->MeshRooms;
+    for (size_t(i) = 0; i < ZoneBuffer->MshPtr->AmountRooms; ++i, currentMesh = currentMesh->next,
+        currroomz = currentMesh,
+        currentMesh = &currroomz->Room)
+        if (currroomz->RoomHash == hash)
+            return i;
+    return -1;
+}
+#pragma optimize( "", on )

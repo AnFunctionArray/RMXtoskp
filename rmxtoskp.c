@@ -10,6 +10,7 @@
 #include <SketchUpAPI/model/vertex.h>
 #include <SketchUpAPI/model/component_instance.h>
 #include <SketchUpAPI/geometry/transformation.h>
+#include <SketchUpAPI/model/component_definition.h>
 #include <assert.h>
 #define _USE_MATH_DEFINES
 #include <math.h>
@@ -194,6 +195,10 @@ struct rots extractEulerAngles(double(*matrix)[4]) {
     char name[0x20];
     SUComponentDefinitionRef(*Definitions)=malloc(ZoneBuffer->ObjsPtr->AmountObjInfoPtrs *sizeof *Definitions);
     SUComponentDefinitionRef(*DefinitionsZone) = malloc(MeshesObjects(ZoneBuffer->MshPtr)->AmountObjects * sizeof * Definitions);
+    SUComponentDefinitionRef(*DefinitionsRooms) = malloc(ZoneBuffer->MshPtr->AmountRooms * sizeof * Definitions);
+    SUMaterialRef* material = malloc(ZoneBuffer->TextPtr->AmountTextInfo * sizeof(SUMaterialRef));
+    fillMaterial(material, ZoneBuffer);
+
     for (size_t(i) = 0; i < ZoneBuffer->ObjsPtr->AmountObjInfoPtrs; ++i)
         i[Definitions] = (SUComponentDefinitionRef){ SU_INVALID },
         b(SUComponentDefinitionCreate, Definitions + i),
@@ -206,30 +211,75 @@ struct rots extractEulerAngles(double(*matrix)[4]) {
         sprintf(name, "MeshObj%zu", i),
         b(SUComponentDefinitionSetName, i[DefinitionsZone], name);
 
+    currentMesh = &ZoneBuffer->MshPtr->MeshRooms.Room;
+    struct RoomMesh* currroomz = &ZoneBuffer->MshPtr->MeshRooms;
+    SUEntitiesRef defentities = SU_INVALID;
+
+    for (size_t(i) = 0; i < ZoneBuffer->MshPtr->AmountRooms; ++i)
+        i[DefinitionsRooms] = (SUComponentDefinitionRef){ SU_INVALID },
+        b(SUComponentDefinitionCreate, DefinitionsRooms + i),
+        sprintf(name, "Room%zu", currroomz->RoomHash),
+        b(SUComponentDefinitionSetName, i[DefinitionsRooms], name),
+        currentMesh = currentMesh->next,
+        currroomz = currentMesh,
+        currentMesh = &currroomz->Room;
+
 	b(SUModelAddComponentDefinitions, model, ZoneBuffer->ObjsPtr->AmountObjInfoPtrs, Definitions);
     b(SUModelAddComponentDefinitions, model, MeshesObjects(ZoneBuffer->MshPtr)->AmountObjects, DefinitionsZone);
-    fillDefinitions(entities,Definitions, DefinitionsZone,ZoneBuffer);
+    b(SUModelAddComponentDefinitions, model, ZoneBuffer->MshPtr->AmountRooms, DefinitionsRooms);
+    currentMesh = &ZoneBuffer->MshPtr->MeshRooms.Room;
+    currroomz = &ZoneBuffer->MshPtr->MeshRooms;
+    for (size_t(i) = 0; i < ZoneBuffer->MshPtr->AmountRooms; ++i)
+        defentities = (SUEntitiesRef){ SU_INVALID },
+        b(SUComponentDefinitionGetEntities, i[DefinitionsRooms], &defentities),
+        fillMesh(defentities, currentMesh, material),
+        currentMesh = currentMesh->next,
+        currroomz = currentMesh,
+        currentMesh = &currroomz->Room;
+    fillDefinitions(entities,Definitions, DefinitionsZone,ZoneBuffer, material);
     //b(SUModelAddComponentDefinitions,model,MeshesObjects(ZoneBuffer->MshPtr)->AmountObjects,Definitions);
 
-    for(size_t RoomIndex=0;currentRoom=RMXBuffer->Rooms[RoomIndex],RoomIndex<RMXBuffer->AmountRooms;++RoomIndex)
+    for (size_t RoomIndex = 0; currentRoom = RMXBuffer->Rooms[RoomIndex], RoomIndex < RMXBuffer->AmountRooms; ++RoomIndex) {
+        struct SUTransformation matrix, matrixtransform, matrixrotation, * outmatrix;
+        struct SUVector3D transform = { currentRoom->RoomTransform.x, currentRoom->RoomTransform.y, currentRoom->RoomTransform.z };
+        struct SUPoint3D rotation = { 0 };
+        struct SUTransformation* get_transform(matrix, rotation, transformation);
+        SUComponentInstanceRef instance = { SU_INVALID };
+        signed int roomidx = findroomindexbyhash(ZoneBuffer, currentRoom->RoomHash);
+        if (roomidx != -1) {
+            b(SUComponentDefinitionCreateInstance, DefinitionsRooms[roomidx], &instance);
+            outmatrix = get_transform(&matrix, &rotation, &transform);
+            if (outmatrix)
+                b(SUComponentInstanceSetTransform, instance, &matrix);
+            char name[0x20];
+
+            sprintf(name, "Room%d", RoomIndex);///*, 0[(*Code)[ObjHead(ZoneBuffer->ObjsPtr)].unknown2c]++*/);
+            //printf("%x", objecthash);
+            b(SUComponentInstanceSetName, instance, name);
+            b(SUEntitiesAddInstance, entities, instance, NULL);
+           //// b(SUComponentInstanceRelease, &instance);
+        }
         for (struct NL_OBJ* (currentObject) = currentRoom->FirstObject; currentObject != currentRoom; currentObject = currentObject->Next) {
             SUComponentInstanceRef instance = { SU_INVALID };
             b(SUComponentDefinitionCreateInstance, Definitions[currentObject->MeshObjIndex], &instance);
-            struct SUTransformation matrix, matrixtransform, matrixrotation, *outmatrix;
             struct SUVector3D transform = { currentObject->ObjectTransform.x, currentObject->ObjectTransform.y, currentObject->ObjectTransform.z };
             struct SUPoint3D rotation = { currentObject->ObjectRotation.x, currentObject->ObjectRotation.y, currentObject->ObjectRotation.z };
 
-            struct SUTransformation* get_transform(matrix, rotation, transformation);
             outmatrix = get_transform(&matrix, &rotation, &transform);
             if (outmatrix)
                 b(SUComponentInstanceSetTransform, instance, &matrix);
             char name[0x20];
 
             sprintf(name, "%x_%x", currentRoom->RoomHash, currentObject->ObjectHash);///*, 0[(*Code)[ObjHead(ZoneBuffer->ObjsPtr)].unknown2c]++*/);
-                //printf("%x", objecthash);
+            //printf("%x", objecthash);
             b(SUComponentInstanceSetName, instance, name);
             b(SUEntitiesAddInstance, entities, instance, NULL);
+            //b(SUComponentInstanceRelease, &instance);
         }
+    }
+    size_t count = 0;
+    //b(SUModelPurgeUnusedLayers, model, &count);
+    printf("purged %zu\n", count);
     //b(SUModelAddComponentDefinitions,model,MeshesObjects(ZoneBuffer->MshPtr)->AmountObjects,Definitions);
     SUModelSaveToFile(model, "new_model.skp"),
     //SUModelRelease(&model),

@@ -10,7 +10,14 @@ struct Mesh {
 		AmountGroups,  // Amount  of groups
 		unknown14[5];
 	struct Vertex {
-		float X, Y, Z, U, V, U1, V1;
+		union {
+			struct {
+				float X, Y, Z, U, V, U1, V1;
+			};
+			struct {
+				float x, y, z, u, v, u1, v1;
+			};
+		};
 		dword Unknown, SpecularColor, DiffuseColor;
 	} vertexData[];  //vertex data of number as  AmountVertices
 #define indexData(currentMesh)((word*)((currentMesh).vertexData+(currentMesh).AmountVertices))
