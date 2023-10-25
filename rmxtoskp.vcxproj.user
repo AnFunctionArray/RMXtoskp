@@ -9,11 +9,11 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>"C:\Program Files\EA Games\Tomb Raider - The Angel of Darkness\Data\Maps\PARIS1\PARIS1.RMX" "C:\Program Files\EA Games\Tomb Raider - The Angel of Darkness\Data\Maps\PARIS1\PARIS1.Z00" "C:\Users\sasho\Downloads\new_model (3).skp"</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments> "D:\Tomb Raider - The Angel of Darkness\Data\Maps\paris2f\paris2f.rmx" "D:\Tomb Raider - The Angel of Darkness\Data\Maps\paris2f\paris2f.Z00"</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>"C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider (VI) The Angel of Darkness\data\Maps\PRAGUE1\PRAGUE1.RMX" "C:\Program Files (x86)\Steam\steamapps\common\Tomb Raider (VI) The Angel of Darkness\data\Maps\PRAGUE1\PRAGUE1.Z00" new_model.skp</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>"D:\Tomb Raider - The Angel of Darkness\Data\Maps\PARIS1\PARIS1.RMX" "D:\Tomb Raider - The Angel of Darkness\Data\Maps\PARIS1\PARIS1.Z00"</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup>
