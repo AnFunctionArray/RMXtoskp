@@ -37,6 +37,9 @@
     <ClCompile Include="utils.c" />
     <ClCompile Include="zone.c" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include=".gitignore" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <ProjectGuid>{8497FD79-FD7B-4F9B-85C7-AA3AAA924BF6}</ProjectGuid>
@@ -95,7 +98,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);C:\Users\sasho\Downloads\SDK_WIN_x64_2023-1-315\headers</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(USERPROFILE)\Downloads\SDK_WIN_x64_2024-0-594\headers;$(USERPROFILE)\Downloads\lpng1644;$(USERPROFILE)\Downloads\squish-1.11</IncludePath>
+    <LibraryPath>%USERPROFILE%\Downloads\SDK_WIN_x64_2024-0-594\binaries\sketchup\x64;%USERPROFILE%\Downloads\squish-1.11\lib64\vs9;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -134,11 +138,12 @@
       <IntrinsicFunctions>false</IntrinsicFunctions>
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;C:\Users\sasho\Downloads\SDK_WIN_x64_2023-1-315\binaries\sketchup\x64\SketchUpAPI.lib;C:\Users\sasho\Downloads\libsquish-1.15\libsquish-1.15\squishd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;SketchUpAPI.lib;squishd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

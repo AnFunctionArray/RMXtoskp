@@ -1,4 +1,4 @@
-#include "C:\Users\sasho\Downloads\libsquish-1.15\libsquish-1.15\squish.h"
+#include <squish.h>
 
 using namespace squish;
 
